@@ -1,0 +1,298 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Copilot Backend",
+    "description": "Backend API for AI Copilot logic and integration.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Returns a simple JSON payload indicating that the service is running.",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Chat with the AI Copilot",
+        "description": "Send chat history and an optional prompt. Returns a deterministic assistant response.",
+        "operationId": "chat_endpoint_api_chat_post",
+        "parameters": [
+          {
+            "name": "X-Session-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful assistant response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/suggest": {
+      "get": {
+        "tags": [
+          "Suggest"
+        ],
+        "summary": "Fetch suggestion prompts",
+        "description": "Returns a static list of suggested prompts to help users get started.",
+        "operationId": "suggest_endpoint_api_suggest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response Suggest Endpoint Api Suggest Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatRequest": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "Chat history messages."
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt",
+            "description": "Optional extra user prompt to append."
+          }
+        },
+        "type": "object",
+        "title": "ChatRequest",
+        "description": "Incoming chat request with optional prompt and prior messages."
+      },
+      "ChatResponse": {
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/Message",
+            "description": "Assistant message returned by the model/service."
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatResponse",
+        "description": "Single message response from the assistant."
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Human-readable error message."
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Optional application-specific error code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "description": "Standard error response wrapper."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Message": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role of the speaker (user, assistant, or system)."
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Text content of the message."
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "Message",
+        "description": "A chat message with role and content."
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "user",
+          "assistant",
+          "system"
+        ],
+        "title": "Role",
+        "description": "Role of the message author in chat history."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Chat",
+      "description": "Chat with the AI Copilot."
+    },
+    {
+      "name": "Suggest",
+      "description": "Get suggested prompts."
+    },
+    {
+      "name": "Health",
+      "description": "Service health checks."
+    }
+  ]
+}
