@@ -18,9 +18,14 @@ app = FastAPI(
     ],
 )
 
+# Build allow_origins list by combining configured env list with localhost:3000 for React dev
+allow_origins = list(settings.cors_origins)
+if "*" not in allow_origins and "http://localhost:3000" not in allow_origins:
+    allow_origins.append("http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
