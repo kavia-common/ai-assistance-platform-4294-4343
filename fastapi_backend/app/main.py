@@ -1,32 +1,44 @@
 from __future__ import annotations
 
+import os
 from typing import List
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+
+from app.routers.health import router as health_router
+from app.routers.suggest import router as suggest_router
+from app.routers.chat import router as chat_router
+
+
+def _get_allowed_origins_from_env() -> List[str]:
+    """Read ALLOWED_ORIGINS env variable as a comma-separated list. Defaults to localhost:3000."""
+    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").strip()
+    # Split by comma and strip whitespace
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
 
 # PUBLIC_INTERFACE
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
-    - Registers CORS allowing http://localhost:3000 for the React dev server
-    - Adds basic /api routes: health, chat, suggest
+    - Configures CORS using ALLOWED_ORIGINS env (default http://localhost:3000)
+    - Registers API routers for health, chat, suggest
     - Provides OpenAPI metadata and tags
     """
     app = FastAPI(
         title="AI Copilot Backend",
-        description="Clean FastAPI boilerplate with basic /api routes.",
-        version="0.1.0",
+        description="FastAPI backend exposing health, suggestions, and OpenAI-integrated chat.",
+        version="0.2.0",
         openapi_tags=[
             {"name": "Health", "description": "Service health checks."},
-            {"name": "Chat", "description": "Simple placeholder chat endpoint."},
-            {"name": "Suggest", "description": "Static suggestions list."},
+            {"name": "Chat", "description": "Chat with the AI Copilot."},
+            {"name": "Suggest", "description": "Get suggested prompts."},
         ],
     )
 
-    # CORS: allow frontend dev origin
-    allow_origins = ["http://localhost:3000"]
+    # CORS configuration from environment
+    allow_origins = _get_allowed_origins_from_env()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allow_origins,
@@ -35,59 +47,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Schemas local to this minimal app
-    class ChatIn(BaseModel):
-        message: str = Field(..., description="User message to send to the assistant.")
-
-    class ChatOutMessage(BaseModel):
-        role: str = Field("assistant", description="Role of the response author.")
-        content: str = Field(..., description="Assistant content.")
-
-    class ChatOut(BaseModel):
-        message: ChatOutMessage
-
-    @app.get(
-        "/api/health",
-        tags=["Health"],
-        summary="Health check",
-        description="Returns a simple JSON payload indicating that the service is running.",
-    )
-    def health_check():
-        """Health check endpoint.
-        Returns:
-        - JSON object: {"status": "ok"}
-        """
-        return {"status": "ok"}
-
-    @app.post(
-        "/api/chat",
-        tags=["Chat"],
-        response_model=ChatOut,
-        status_code=status.HTTP_200_OK,
-        summary="Chat with the assistant (placeholder)",
-        description="Accepts a single message and returns a deterministic placeholder assistant reply.",
-    )
-    def chat_endpoint(payload: ChatIn) -> ChatOut:
-        """Placeholder chat endpoint.
-        Parameters:
-        - payload: ChatIn with { message: string }
-        Returns:
-        - ChatOut: { "message": {"role": "assistant", "content": "Hello"} }
-        """
-        # Minimal deterministic placeholder response
-        return ChatOut(message=ChatOutMessage(role="assistant", content="Hello"))
-
-    @app.get(
-        "/api/suggest",
-        tags=["Suggest"],
-        response_model=List[str],
-        status_code=status.HTTP_200_OK,
-        summary="Fetch suggestion prompts",
-        description="Returns a static list of suggested prompts to help users get started.",
-    )
-    def suggest_endpoint() -> List[str]:
-        """Get a list of suggested prompts."""
-        return ["Try asking about the weather", "Ask for a code review", "Summarize a document"]
+    # Register routers under /api
+    app.include_router(health_router, prefix="/api")
+    app.include_router(chat_router, prefix="/api")
+    app.include_router(suggest_router, prefix="/api")
 
     return app
 

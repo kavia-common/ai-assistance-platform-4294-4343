@@ -1,44 +1,57 @@
-# FastAPI Backend (Clean Boilerplate)
+# FastAPI Backend (AI Copilot)
 
-This is a minimal FastAPI backend scaffolded for the AI Copilot project.
+FastAPI backend for the AI Copilot. Provides health check, suggestions, and OpenAI-integrated chat API.
 
 - Framework: FastAPI + Uvicorn
 - Default dev port: 3001
 - Base API path: /api
-- CORS: Allows http://localhost:3000 (React dev server)
+- CORS: Configured via `ALLOWED_ORIGINS` (default `http://localhost:3000`)
 - Entrypoint: app/main.py (ASGI app variable: `app`)
 
 ## Endpoints
 
 - GET /api/health
   - Response: {"status": "ok"}
-- POST /api/chat
-  - Body: {"message": "Hello"}
-  - Response: {"message": {"role": "assistant", "content": "Hello"}}
 - GET /api/suggest
-  - Response: ["Try asking about the weather", "Ask for a code review", "Summarize a document"]
+  - Response: {"suggestions": ["..."]} (exposed as plain array by the route, typed via response_model)
+- POST /api/chat
+  - Body (ChatRequest):
+    {
+      "messages": [{"role":"user|assistant|system", "content":"..."}],
+      "prompt": "optional extra user prompt"
+    }
+  - Response (ChatResponse):
+    {"message": {"role": "assistant", "content": "..."}}
 
-## Running locally
+## Error handling
 
-1) Install dependencies (Python 3.11+ recommended):
-   - pip install -r requirements.txt
+- Returns JSON `ErrorResponse` on errors:
+  - 503: Missing OpenAI API key or connection issues
+  - 502: Upstream OpenAI error or empty response
+  - 400/422: Validation errors handled by FastAPI/Pydantic
 
-2) Run with Uvicorn on port 3001:
-   - uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT:-3001} --reload
+## Environment variables
 
-Docs and schema:
-- Swagger UI: http://localhost:3001/docs
-- OpenAPI JSON: http://localhost:3001/openapi.json
-
-## Environment
-
-- BACKEND_PORT (optional): Port for the backend server.
-  - Default in docs/commands: 3001
+- BACKEND_PORT: Port for the backend server (default: 3001)
+- ALLOWED_ORIGINS: Comma-separated list of allowed origins for CORS (default: http://localhost:3000)
+- OPENAI_API_KEY: API key for OpenAI (required for /api/chat)
+- OPENAI_MODEL: Model name (default: gpt-4o-mini)
 
 Note: Environment variables are provided by the orchestrator. Do not commit a .env file.
 
-## Notes
+## Running locally
 
-- This is a fresh boilerplate and intentionally minimal.
-- It is designed to pair with the React frontend at http://localhost:3000.
-- CORS is configured to allow http://localhost:3000 only by default.
+1) Python 3.11+ recommended
+2) Install dependencies:
+   pip install -r requirements.txt
+3) Run with Uvicorn:
+   uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT:-3001} --reload
+
+Docs:
+- Swagger UI: http://localhost:3001/docs
+- OpenAPI JSON: http://localhost:3001/openapi.json
+
+## Testing
+
+Run pytest:
+  pytest -q fastapi_backend/tests
